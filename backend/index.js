@@ -97,6 +97,56 @@ app.get('/auth/google/callback',
   }
 );
 
+app.post('/api/cart/add', (req, res) => {
+  const userId = req.session.userId; // Get logged-in user ID from session
+  const { productId, quantity } = req.body;
+
+  if (!userId) return res.status(401).json({ message: 'Not logged in' });
+  if (!productId || !quantity) return res.status(400).json({ message: 'Missing data' });
+
+  // Check if product is already in cart
+  db.get(`SELECT * FROM cart_items WHERE user_id = ? AND product_id = ?`, [userId, productId], (err, row) => {
+    if (err) return res.status(500).json({ message: 'DB error' });
+
+    if (row) {
+      // Update quantity
+      db.run(`UPDATE cart_items SET quantity = ? WHERE id = ?`, [quantity, row.id], (err) => {
+        if (err) return res.status(500).json({ message: 'DB error' });
+        res.json({ message: 'Cart updated' });
+      });
+    } else {
+      // Insert new item
+      db.run(`INSERT INTO cart_items (user_id, product_id, quantity) VALUES (?, ?, ?)`, [userId, productId, quantity], (err) => {
+        if (err) return res.status(500).json({ message: 'DB error' });
+        res.json({ message: 'Item added to cart' });
+      });
+    }
+  });
+});
+app.post('/api/cart/remove', (req, res) => {
+  const userId = req.session.userId;
+  const { productId } = req.body;
+
+  if (!userId) return res.status(401).json({ message: 'Not logged in' });
+  if (!productId) return res.status(400).json({ message: 'Missing product ID' });
+
+  db.run(`DELETE FROM cart_items WHERE user_id = ? AND product_id = ?`, [userId, productId], function(err) {
+    if (err) return res.status(500).json({ message: 'DB error' });
+    if (this.changes === 0) return res.status(404).json({ message: 'Item not found' });
+    res.json({ message: 'Item removed from cart' });
+  });
+});
+app.get('/api/cart', (req, res) => {
+  const userId = req.session.userId;
+  if (!userId) return res.status(401).json({ message: 'Not logged in' });
+
+  db.all(`SELECT product_id, quantity FROM cart_items WHERE user_id = ?`, [userId], (err, rows) => {
+    if (err) return res.status(500).json({ message: 'DB error' });
+    res.json(rows);
+  });
+});
+
+
 app.post('/login', (req, res) => {
   const { username } = req.body;
   if (!username) return res.status(400).send('Username required');
