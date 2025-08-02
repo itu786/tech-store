@@ -1,96 +1,56 @@
+// backend/cart.js
 const express = require('express');
-const router = express.Router();
-const db = require('./db');
 
-// Middleware to check if logged in
-function isLoggedIn(req, res, next) {
-  if (req.isAuthenticated()) return next();
-  res.status(401).json({ message: 'Not logged in' });
-}
+module.exports = function(db) {
+  const router = express.Router();
 
-// Create cart table if not exists
-db.run(`CREATE TABLE IF NOT EXISTS cart (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id TEXT,
-  product_id TEXT,
-  quantity INTEGER
-)`);
+  router.post('/add', (req, res) => {
+    const userId = req.session.userId;
+    const { productId, quantity } = req.body;
 
-// Add item to cart
-router.post('/add', isLoggedIn, (req, res) => {
-  const { productId, quantity } = req.body;
-  const userId = req.user.id;
+    if (!userId) return res.status(401).json({ message: 'Not logged in' });
+    if (!productId || !quantity) return res.status(400).json({ message: 'Missing data' });
 
-  // Check if item already in cart
-  db.get(
-    `SELECT * FROM cart WHERE user_id = ? AND product_id = ?`,
-    [userId, productId],
-    (err, row) => {
-      if (err) return res.status(500).json({ error: err.message });
+    db.get(`SELECT * FROM cart_items WHERE user_id = ? AND product_id = ?`, [userId, productId], (err, row) => {
+      if (err) return res.status(500).json({ message: 'DB error' });
 
       if (row) {
-        // Update quantity
-        const newQty = row.quantity + quantity;
-        db.run(
-          `UPDATE cart SET quantity = ? WHERE id = ?`,
-          [newQty, row.id],
-          err => {
-            if (err) return res.status(500).json({ error: err.message });
-            res.json({ message: 'Cart updated' });
-          }
-        );
+        db.run(`UPDATE cart_items SET quantity = ? WHERE id = ?`, [quantity, row.id], (err) => {
+          if (err) return res.status(500).json({ message: 'DB error' });
+          res.json({ message: 'Cart updated' });
+        });
       } else {
-        // Insert new item
-        db.run(
-          `INSERT INTO cart (user_id, product_id, quantity) VALUES (?, ?, ?)`,
-          [userId, productId, quantity],
-          err => {
-            if (err) return res.status(500).json({ error: err.message });
-            res.json({ message: 'Item added to cart' });
-          }
-        );
+        db.run(`INSERT INTO cart_items (user_id, product_id, quantity) VALUES (?, ?, ?)`, [userId, productId, quantity], (err) => {
+          if (err) return res.status(500).json({ message: 'DB error' });
+          res.json({ message: 'Item added to cart' });
+        });
       }
-    }
-  );
-});
-
-// Get cart items
-router.get('/', isLoggedIn, (req, res) => {
-  const userId = req.user.id;
-  db.all(`SELECT * FROM cart WHERE user_id = ?`, [userId], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
+    });
   });
-});
 
-// Remove item
-router.post('/remove', isLoggedIn, (req, res) => {
-  const { productId } = req.body;
-  const userId = req.user.id;
+  router.post('/remove', (req, res) => {
+    const userId = req.session.userId;
+    const { productId } = req.body;
 
-  db.run(
-    `DELETE FROM cart WHERE user_id = ? AND product_id = ?`,
-    [userId, productId],
-    err => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ message: 'Item removed' });
-    }
-  );
-});
+    if (!userId) return res.status(401).json({ message: 'Not logged in' });
+    if (!productId) return res.status(400).json({ message: 'Missing product ID' });
 
-// Update quantity
-router.post('/update', isLoggedIn, (req, res) => {
-  const { productId, quantity } = req.body;
-  const userId = req.user.id;
+    db.run(`DELETE FROM cart_items WHERE user_id = ? AND product_id = ?`, [userId, productId], function(err) {
+      if (err) return res.status(500).json({ message: 'DB error' });
+      if (this.changes === 0) return res.status(404).json({ message: 'Item not found' });
+      res.json({ message: 'Item removed from cart' });
+    });
+  });
 
-  db.run(
-    `UPDATE cart SET quantity = ? WHERE user_id = ? AND product_id = ?`,
-    [quantity, userId, productId],
-    err => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ message: 'Quantity updated' });
-    }
-  );
-});
+  router.get('/', (req, res) => {
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).json({ message: 'Not logged in' });
 
-module.exports = router;
+    db.all(`SELECT product_id, quantity FROM cart_items WHERE user_id = ?`, [userId], (err, rows) => {
+      if (err) return res.status(500).json({ message: 'DB error' });
+      res.json(rows);
+    });
+  });
+
+  return router;
+};

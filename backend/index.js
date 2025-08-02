@@ -181,8 +181,14 @@ app.get('/logout', (req, res) => {
 });
 
 // ✅ FIXED: Moved this below app declaration
-const cartRoutes = require('./cart');
+const cartRoutes = require('./cart')(db); // Pass db into the router function
 app.use('/api/cart', cartRoutes);
+app.get('/test-env', (req, res) => {
+  res.json({
+    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET
+  });
+});
 
 // Start server
 app.listen(PORT, () => {
