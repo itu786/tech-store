@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Store - IT UNIVERSE</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* Minimal extra styles for filters */
+    .filters {
+      background: #fff;
+      max-width: 700px;
+      margin: 20px auto;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      text-align: left;
+    }
+    .filters label {
+      display: block;
+      margin: 8px 0 4px;
+      font-weight: bold;
+    }
+    .filters select, .filters input[type=number], .filters input[type=text] {
+      width: 100%;
+      padding: 6px;
+      margin-bottom: 12px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    .product-list {
+      max-width: 700px;
+      margin: 20px auto;
+      padding: 0;
+      list-style: none;
+      text-align: left;
+    }
+    .product-item {
+      background: white;
+      margin-bottom: 15px;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 0 4px rgba(0,0,0,0.1);
+    }
+    .product-item h4 {
+      margin: 0 0 5px 0;
+      color: #004080;
+    }
+    .product-item p {
+      margin: 3px 0;
+    }
+    .price {
+      font-weight: bold;
+      color: #007700;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <img src="logo.png" alt="IT UNIVERSE Logo" />
+    </div>
+    <nav>
+      <a href="index.html">Home</a> |
+      <a href="store.html">Store</a> |
+      <a href="services.html">Services</a> |
+      <a href="contact.html">Contact</a>
+    </nav>
+  </header>
+
+  <section class="store-intro">
+    <h2>Our Products & Services</h2>
+    <p>Use the filters below to find what you need.</p>
+  </section>
+
+  <section class="filters">
+    <label for="filter-type">Product Type</label>
+    <select id="filter-type">
+      <option value="">All Types</option>
+      <option value="PC">PC</option>
+      <option value="Laptop">Laptop</option>
+      <option value="Digital">Digital Download</option>
+      <option value="Service">Service</option>
+    </select>
+
+    <label for="filter-brand">Brand</label>
+    <select id="filter-brand">
+      <option value="">All Brands</option>
+      <option value="Dell">Dell</option>
+      <option value="HP">HP</option>
+      <option value="Lenovo">Lenovo</option>
+      <option value="Microsoft">Microsoft</option>
+    </select>
+
+    <label for="filter-cpu">CPU</label>
+    <select id="filter-cpu">
+      <option value="">Any CPU</option>
+      <option value="Intel i5">Intel i5</option>
+      <option value="Intel i7">Intel i7</option>
+      <option value="AMD Ryzen 5">AMD Ryzen 5</option>
+      <option value="AMD Ryzen 7">AMD Ryzen 7</option>
+    </select>
+
+    <label for="filter-ram">RAM Size (GB)</label>
+    <select id="filter-ram">
+      <option value="">Any RAM</option>
+      <option value="4">4</option>
+      <option value="8">8</option>
+      <option value="16">16</option>
+      <option value="32">32</option>
+    </select>
+
+    <label for="filter-price-min">Min Price (R)</label>
+    <input type="number" id="filter-price-min" placeholder="0" min="0" />
+
+    <label for="filter-price-max">Max Price (R)</label>
+    <input type="number" id="filter-price-max" placeholder="No limit" min="0" />
+
+    <label for="filter-search">Search Keyword</label>
+    <input type="text" id="filter-search" placeholder="Search by name or description" />
+  </section>
+
+  <ul class="product-list" id="product-list">
+    <!-- Products appear here dynamically -->
+  </ul>
+
+  <footer>
+    <p>
+      AL MUHSIN ENTERPRISES (PTY) LTD t/a IT Universe<br />
+      Unit 13 - Upper Level, Garden City Centre, 103 Court Road, Umzinto, 4200, South Africa<br />
+      Phone: 074 602 1606 | Email: info@ituniverse.co.za | <a href="https://www.ituniverse.co.za">www.ituniverse.co.za</a>
+    </p>
+  </footer>
+
+  <script>
+    // Sample product data array
+    const products = [
+      {
+        id: 1,
+        type: "PC",
+        brand: "Dell",
+        cpu: "Intel i7",
+        ram: 16,
+        price: 15000,
+        name: "Powerful Gaming PC",
+        description: "Intel i7, 16GB RAM, 512GB SSD, NVIDIA RTX 3060",
+      },
+      {
+        id: 2,
+        type: "Laptop",
+        brand: "HP",
+        cpu: "Intel i5",
+        ram: 8,
+        price: 12000,
+        name: "HP Business Laptop",
+        description: "Intel i5, 8GB RAM, 256GB SSD, Windows 10 Pro",
+      },
+      {
+        id: 3,
+        type: "Digital",
+        brand: "Microsoft",
+        cpu: "",
+        ram: 0,
+        price: 2500,
+        name: "Windows 10 Pro License",
+        description: "Official Microsoft digital license",
+      },
+      {
+        id: 4,
+        type: "Service",
+        brand: "",
+        cpu: "",
+        ram: 0,
+        price: 500,
+        name: "PC Repair Service",
+        description: "Fast and reliable computer repair",
+      },
+      {
+        id: 5,
+        type: "Laptop",
+        brand: "Lenovo",
+        cpu: "AMD Ryzen 7",
+        ram: 16,
+        price: 14000,
+        name: "Lenovo Ryzen Laptop",
+        description: "AMD Ryzen 7, 16GB RAM, 512GB SSD",
+      }
+    ];
+
+    // Function to render product list
+    function renderProducts(productsToRender) {
+      const listEl = document.getElementById("product-list");
+      listEl.innerHTML = "";
+
+      if (productsToRender.length === 0) {
+        listEl.innerHTML = "<li>No products match your filters.</li>";
+        return;
+      }
+
+      productsToRender.forEach(p => {
+        const li = document.createElement("li");
+        li.className = "product-item";
+        li.innerHTML = `
+          <h4>${p.name}</h4>
+          <p>${p.description}</p>
+          <p><strong>Type:</strong> ${p.type}</p>
+          <p><strong>Brand:</strong> ${p.brand || "N/A"}</p>
+          <p><strong>CPU:</strong> ${p.cpu || "N/A"}</p>
+          <p><strong>RAM:</strong> ${p.ram > 0 ? p.ram + " GB" : "N/A"}</p>
+          <p class="price">Price: R${p.price.toLocaleString()}</p>
+          <button disabled>Add to Cart (Coming Soon)</button>
+        `;
+        listEl.appendChild(li);
+      });
+    }
+
+    // Function to apply filters and return filtered array
+    function filterProducts() {
+      const type = document.getElementById("filter-type").value;
+      const brand = document.getElementById("filter-brand").value;
+      const cpu = document.getElementById("filter-cpu").value;
+      const ram = document.getElementById("filter-ram").value;
+      const priceMin = parseFloat(document.getElementById("filter-price-min").value) || 0;
+      const priceMaxRaw = document.getElementById("filter-price-max").value;
+      const priceMax = priceMaxRaw ? parseFloat(priceMaxRaw) : Infinity;
+      const search = document.getElementById("filter-search").value.toLowerCase();
+
+      return products.filter(p => {
+        return (
+          (type === "" || p.type === type) &&
+          (brand === "" || p.brand === brand) &&
+          (cpu === "" || p.cpu === cpu) &&
+          (ram === "" || p.ram.toString() === ram) &&
+          p.price >= priceMin &&
+          p.price <= priceMax &&
+          (p.name.toLowerCase().includes(search) || p.description.toLowerCase().includes(search))
+        );
+      });
+    }
+
+    // Attach filter events
+    const filterElements = [
+      "filter-type",
+      "filter-brand",
+      "filter-cpu",
+      "filter-ram",
+      "filter-price-min",
+      "filter-price-max",
+      "filter-search"
+    ].map(id => document.getElementById(id));
+
+    filterElements.forEach(el => {
+      el.addEventListener("input", () => {
+        const filtered = filterProducts();
+        renderProducts(filtered);
+      });
+    });
+
+    // Initial render
+    renderProducts(products);
+  </script>
+</body>
+</html>

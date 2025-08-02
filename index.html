@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>IT Universe Store</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <img src="logo.png" alt="IT UNIVERSE Logo" />
+    </div>
+    <nav>
+      <a href="index.html">Home</a> |
+      <a href="store.html">Store</a> |
+      <a href="services.html">Services</a> |
+      <a href="contact.html">Contact</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="store-intro">
+      <h2>Our Products</h2>
+      <input type="text" id="searchBar" placeholder="Search for a product..." />
+    </section>
+
+    <section id="product-list" class="product-grid">
+      <!-- Products will be dynamically injected here -->
+    </section>
+  </main>
+
+  <footer>
+    <p>
+      AL MUHSIN ENTERPRISES (PTY) LTD t/a IT Universe<br />
+      Unit 13 - Upper Level, Garden City Centre, 103 Court Road, Umzinto, 4200, South Africa<br />
+      Phone: 074 602 1606 | Email: info@ituniverse.co.za
+    </p>
+  </footer>
+
+  <script>
+    const products = [
+      { id: 1, name: "Refurbished Laptop", price: 3500, desc: "Great value for office and home." },
+      { id: 2, name: "Desktop PC", price: 4500, desc: "Fast and reliable for business use." },
+      { id: 3, name: "WiFi Router", price: 899, desc: "Dual-band, high-speed coverage." },
+      { id: 4, name: "USB Keyboard", price: 150, desc: "Slim design, full-size keys." },
+    ];
+
+    const productList = document.getElementById("product-list");
+
+    function displayProducts(list) {
+      productList.innerHTML = "";
+      list.forEach((p) => {
+        const card = document.createElement("div");
+        card.className = "product-card";
+        card.innerHTML = `
+          <h3>${p.name}</h3>
+          <p>${p.desc}</p>
+          <strong>R${p.price}</strong><br>
+          <button onclick="addToCart(${p.id})">Add to Cart</button>
+        `;
+        productList.appendChild(card);
+      });
+    }
+
+    function addToCart(id) {
+      alert("Added to cart: " + products.find(p => p.id === id).name);
+      // In full version: store in memory or sessionStorage
+    }
+
+    document.getElementById("searchBar").addEventListener("input", function() {
+      const term = this.value.toLowerCase();
+      const filtered = products.filter(p => p.name.toLowerCase().includes(term) || p.desc.toLowerCase().includes(term));
+      displayProducts(filtered);
+    });
+
+    displayProducts(products);
+  </script>
+</body>
+</html>

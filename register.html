@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Register - IT Universe</title>
+</head>
+<body>
+  <h2>Register</h2>
+  <form id="registerForm">
+    <label>Username: <input type="text" name="username" required /></label><br/><br/>
+    <label>Password: <input type="password" name="password" required /></label><br/><br/>
+    <button type="submit">Register</button>
+  </form>
+  <p id="message"></p>
+  <script>
+    const form = document.getElementById('registerForm');
+    const msg = document.getElementById('message');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+      const data = new URLSearchParams(formData);
+
+      const res = await fetch('http://localhost:3001/register', {
+        method: 'POST',
+        body: data,
+      });
+
+      const text = await res.text();
+      msg.textContent = text;
+      if(res.ok) form.reset();
+    });
+  </script>
+</body>
+</html>

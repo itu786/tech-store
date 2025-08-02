@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Profile - IT Universe</title>
+</head>
+<body>
+  <h2>Profile</h2>
+  <div id="profileInfo">Loading...</div>
+  <button id="logoutBtn">Logout</button>
+  <script>
+    async function loadProfile() {
+      const res = await fetch('http://localhost:3001/profile', {
+        credentials: 'include'
+      });
+      if (res.ok) {
+        const data = await res.json();
+        document.getElementById('profileInfo').textContent = `Logged in as: ${data.username}`;
+      } else {
+        document.getElementById('profileInfo').textContent = 'Not logged in.';
+      }
+    }
+    loadProfile();
+
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await fetch('http://localhost:3001/logout', {
+        credentials: 'include'
+      });
+      location.reload();
+    });
+  </script>
+</body>
+</html>

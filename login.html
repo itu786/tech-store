@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login - IT Universe</title>
+</head>
+<body>
+  <h2>Login</h2>
+  <form id="loginForm">
+    <label>Username: <input type="text" name="username" required /></label><br/><br/>
+    <label>Password: <input type="password" name="password" required /></label><br/><br/>
+    <button type="submit">Login</button>
+  </form>
+  <p id="message"></p>
+  <script>
+    const form = document.getElementById('loginForm');
+    const msg = document.getElementById('message');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+      const data = new URLSearchParams(formData);
+
+      const res = await fetch('http://localhost:3001/login', {
+        method: 'POST',
+        body: data,
+        credentials: 'include'
+      });
+
+      const text = await res.text();
+      msg.textContent = text;
+      if(res.ok) form.reset();
+    });
+  </script>
+</body>
+</html>
