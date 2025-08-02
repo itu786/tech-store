@@ -3,32 +3,71 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Profile - IT Universe</title>
+  <title>Profile - IT UNIVERSE</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 0 20px;
+      text-align: center;
+    }
+    #profile-info {
+      margin-top: 20px;
+      font-size: 1.2em;
+      color: #004080;
+    }
+    a.button {
+      display: inline-block;
+      margin-top: 30px;
+      padding: 10px 20px;
+      background-color: #004080;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+      font-weight: bold;
+    }
+    a.button:hover {
+      background-color: #003060;
+    }
+  </style>
 </head>
 <body>
-  <h2>Profile</h2>
-  <div id="profileInfo">Loading...</div>
-  <button id="logoutBtn">Logout</button>
+  <h1>Profile</h1>
+  <div id="profile-info">Loading...</div>
+  <a href="http://localhost:3000/logout" class="button">Logout</a>
+
   <script>
     async function loadProfile() {
-      const res = await fetch('http://localhost:3001/profile', {
-        credentials: 'include'
-      });
-      if (res.ok) {
+      try {
+        const res = await fetch('http://localhost:3000/profile', {
+          credentials: 'include' // send cookies/session info
+        });
+        if (!res.ok) {
+          if (res.status === 401) {
+            document.getElementById('profile-info').innerText = 'Not logged in.';
+            return;
+          }
+          throw new Error('Network response was not ok');
+        }
         const data = await res.json();
-        document.getElementById('profileInfo').textContent = `Logged in as: ${data.username}`;
-      } else {
-        document.getElementById('profileInfo').textContent = 'Not logged in.';
+        console.log('PROFILE DATA:', data);
+
+        if (data.user) {
+          const user = data.user;
+          // Use username if available, else email, else "User"
+          const name = user.username || user.email || "User";
+          document.getElementById('profile-info').innerText = `Logged in as: ${name}`;
+        } else {
+          document.getElementById('profile-info').innerText = 'Not logged in.';
+        }
+      } catch (error) {
+        console.error('Error loading profile:', error);
+        document.getElementById('profile-info').innerText = 'Failed to load profile.';
       }
     }
-    loadProfile();
 
-    document.getElementById('logoutBtn').addEventListener('click', async () => {
-      await fetch('http://localhost:3001/logout', {
-        credentials: 'include'
-      });
-      location.reload();
-    });
+    loadProfile();
   </script>
 </body>
 </html>

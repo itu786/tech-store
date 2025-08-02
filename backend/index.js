@@ -1,5 +1,7 @@
 // backend/index.js
 
+require('dotenv').config(); // Load .env variables at the top
+
 const express = require('express');
 const session = require('express-session');
 const passport = require('passport');
@@ -8,7 +10,6 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
-require('dotenv').config(); // Load variables from .env file
 
 const app = express();
 const PORT = 3000;
@@ -21,21 +22,18 @@ db.run(`CREATE TABLE IF NOT EXISTS users (
   email TEXT,
   googleId TEXT
 )`);
-
-db.run(`
-  CREATE TABLE IF NOT EXISTS cart_items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    product_id INTEGER NOT NULL,
-    quantity INTEGER NOT NULL DEFAULT 1,
-    added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(user_id) REFERENCES users(id)
-  )
-`);
+db.run(`CREATE TABLE IF NOT EXISTS cart_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  product_id INTEGER NOT NULL,
+  quantity INTEGER NOT NULL DEFAULT 1,
+  added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(user_id) REFERENCES users(id)
+)`);
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:5500',
+  origin: 'http://localhost:5500', // Adjust if frontend runs elsewhere
   credentials: true
 }));
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -53,7 +51,7 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Passport config
+// Passport serialize & deserialize
 passport.serializeUser((user, done) => done(null, user.id));
 passport.deserializeUser((id, done) => {
   db.get('SELECT * FROM users WHERE id = ?', id, (err, row) => {
@@ -62,6 +60,7 @@ passport.deserializeUser((id, done) => {
   });
 });
 
+// Google OAuth Strategy
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -75,7 +74,7 @@ passport.use(new GoogleStrategy({
       db.run(
         'INSERT INTO users (username, email, googleId) VALUES (?, ?, ?)',
         [profile.displayName, profile.emails[0].value, profile.id],
-        function (err) {
+        function(err) {
           if (err) return done(err);
           db.get('SELECT * FROM users WHERE id = ?', this.lastID, (err, row) => {
             done(null, row);
@@ -86,8 +85,7 @@ passport.use(new GoogleStrategy({
   });
 }));
 
-// Routes
-
+// Google OAuth routes
 app.get('/auth/google',
   passport.authenticate('google', { scope: ['profile', 'email'] })
 );
@@ -95,12 +93,49 @@ app.get('/auth/google',
 app.get('/auth/google/callback',
   passport.authenticate('google', { failureRedirect: '/' }),
   (req, res) => {
-    // ✅ FIXED: Save user ID to session for cart use
+    // Save user ID in session for cart and other uses
     req.session.userId = req.user.id;
     res.redirect('http://localhost:5500/profile.html');
   }
 );
 
+// Manual login route (example)
+app.post('/login', (req, res) => {
+  const { username } = req.body;
+  if (!username) return res.status(400).send('Username required');
+
+  db.run('INSERT INTO users (username) VALUES (?)', [username], function(err) {
+    if (err) return res.status(500).send('Database error');
+    req.session.userId = this.lastID; // Store user ID in session
+    res.json({ message: 'Logged in', userId: req.session.userId });
+  });
+});
+
+// Profile route
+app.get('/profile', (req, res) => {
+  if (req.isAuthenticated()) {
+    res.json({ user: req.user });
+  } else if (req.session.userId) {
+    db.get('SELECT * FROM users WHERE id = ?', req.session.userId, (err, row) => {
+      if (err || !row) return res.status(401).json({ user: null });
+      res.json({ user: row });
+    });
+  } else {
+    res.status(401).json({ user: null });
+  }
+});
+
+// Logout
+app.get('/logout', (req, res) => {
+  req.logout(() => {
+    req.session.destroy();
+    res.redirect('http://localhost:5500');
+  });
+});
+
+// CART ROUTES using req.session.userId
+
+// Add item to cart
 app.post('/api/cart/add', (req, res) => {
   const userId = req.session.userId;
   const { productId, quantity } = req.body;
@@ -125,6 +160,7 @@ app.post('/api/cart/add', (req, res) => {
   });
 });
 
+// Remove item from cart
 app.post('/api/cart/remove', (req, res) => {
   const userId = req.session.userId;
   const { productId } = req.body;
@@ -132,13 +168,14 @@ app.post('/api/cart/remove', (req, res) => {
   if (!userId) return res.status(401).json({ message: 'Not logged in' });
   if (!productId) return res.status(400).json({ message: 'Missing product ID' });
 
-  db.run(`DELETE FROM cart_items WHERE user_id = ? AND product_id = ?`, [userId, productId], function (err) {
+  db.run(`DELETE FROM cart_items WHERE user_id = ? AND product_id = ?`, [userId, productId], function(err) {
     if (err) return res.status(500).json({ message: 'DB error' });
     if (this.changes === 0) return res.status(404).json({ message: 'Item not found' });
     res.json({ message: 'Item removed from cart' });
   });
 });
 
+// Get cart items
 app.get('/api/cart', (req, res) => {
   const userId = req.session.userId;
   if (!userId) return res.status(401).json({ message: 'Not logged in' });
@@ -148,41 +185,6 @@ app.get('/api/cart', (req, res) => {
     res.json(rows);
   });
 });
-
-// ✅ FIXED: Manual login route uses session.userId
-app.post('/login', (req, res) => {
-  const { username } = req.body;
-  if (!username) return res.status(400).send('Username required');
-  db.run('INSERT INTO users (username) VALUES (?)', [username], function (err) {
-    if (err) return res.status(500).send('Database error');
-    req.session.userId = this.lastID;
-    res.json({ message: 'Logged in', userId: this.lastID });
-  });
-});
-
-app.get('/profile', (req, res) => {
-  if (req.isAuthenticated()) {
-    res.json({ user: req.user });
-  } else if (req.session.userId) {
-    db.get('SELECT * FROM users WHERE id = ?', req.session.userId, (err, row) => {
-      if (err) return res.status(500).json({ user: null });
-      res.json({ user: row });
-    });
-  } else {
-    res.status(401).json({ user: null });
-  }
-});
-
-app.get('/logout', (req, res) => {
-  req.logout(() => {
-    req.session.destroy();
-    res.redirect('http://localhost:5500');
-  });
-});
-
-// ✅ FIXED: Moved this below app declaration
-const cartRoutes = require('./cart')(db); // Pass db into the router function
-app.use('/api/cart', cartRoutes);
 
 // Start server
 app.listen(PORT, () => {
